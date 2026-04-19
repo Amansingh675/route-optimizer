@@ -16,12 +16,6 @@ const features = [
     icon: Map,
   },
   {
-    title: "Advanced Algorithms",
-    desc: "TSP, Greedy, DP, Brute Force",
-    link: "/advanced",
-    icon: Cpu,
-  },
-  {
     title: "Smart Features",
     desc: "Traffic, weather, delivery mode",
     link: "/smart",
