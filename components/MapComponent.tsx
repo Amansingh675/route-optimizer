@@ -25,6 +25,10 @@ export default function MapComponent() {
   const [greedyDist, setGreedyDist] = useState(0);
   const [bruteDist, setBruteDist] = useState(0);
 
+  const [bestAlgo, setBestAlgo] = useState("");
+  const [timeGreedy, setTimeGreedy] = useState(0);
+  const [timeBrute, setTimeBrute] = useState(0);
+
   function calcDistance(points: Location[]) {
     let dist = 0;
     for (let i = 0; i < points.length - 1; i++) {
@@ -66,7 +70,7 @@ export default function MapComponent() {
             setLocations(opt);
             calcDistance(opt);
           }}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg"
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition hover:scale-105"
         >
           Optimize 🚀
         </button>
@@ -77,8 +81,9 @@ export default function MapComponent() {
             setTotalDistance(0);
             setGreedyDist(0);
             setBruteDist(0);
+            setBestAlgo("");
           }}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition hover:scale-105"
         >
           Clear
         </button>
@@ -90,7 +95,9 @@ export default function MapComponent() {
               return;
             }
 
-            // Greedy
+            // ⏱ Greedy timing
+            const startG = performance.now();
+
             const gPath = tspGreedy(locations);
             let gDist = 0;
 
@@ -103,23 +110,39 @@ export default function MapComponent() {
               );
             }
 
-            setGreedyDist(gDist);
+            const endG = performance.now();
 
-            // Brute
+            setGreedyDist(gDist);
+            setTimeGreedy(endG - startG);
+
+            // ⏱ Brute
             if (locations.length <= 8) {
+              const startB = performance.now();
+
               const { minDist } = tspBrute(locations);
+
+              const endB = performance.now();
+
               setBruteDist(minDist);
+              setTimeBrute(endB - startB);
+
+              if (minDist < gDist) {
+                setBestAlgo("Brute Force (Most Accurate)");
+              } else {
+                setBestAlgo("Greedy (Fast & Efficient)");
+              }
             } else {
-              alert("Use max 8 points for brute force");
+              alert("Max 8 points for brute force");
+              setBestAlgo("Greedy (Large Input)");
             }
           }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition hover:scale-105"
         >
           Compare 📊
         </button>
       </div>
 
-      {/* 📊 INFO CARD */}
+      {/* 📊 INFO */}
       <div className="mb-4 p-3 bg-gray-800 rounded-xl">
         <p>Total Distance: {totalDistance.toFixed(2)} km</p>
         <p>Total Points: {locations.length}</p>
@@ -127,13 +150,8 @@ export default function MapComponent() {
 
       {/* 🌍 MAP */}
       <div className="rounded-xl overflow-hidden border border-gray-700">
-        <MapContainer
-          center={center}
-          zoom={5}
-          className="h-125 w-full"
-        >
+        <MapContainer center={center} zoom={5} className="h-125 w-full">
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
           <ClickHandler />
 
           {locations.map((l, i) => (
@@ -146,9 +164,27 @@ export default function MapComponent() {
         </MapContainer>
       </div>
 
-      {/* 📈 CHART SECTION */}
+      {/* 📈 RESULT + CHART */}
       {greedyDist !== 0 && (
         <div className="mt-6">
+
+          {/* 🔥 RESULT BOX */}
+          <div className="mb-4 p-4 bg-gray-800 rounded-xl">
+            <p>Greedy Distance: {greedyDist.toFixed(2)} km</p>
+            <p>Brute Distance: {bruteDist.toFixed(2)} km</p>
+
+            <p className="mt-2">
+              ⏱ Greedy Time: {timeGreedy.toFixed(2)} ms
+            </p>
+            <p>
+              ⏱ Brute Time: {timeBrute.toFixed(2)} ms
+            </p>
+
+            <p className="mt-3 text-green-400 font-semibold">
+              🧠 Best Algorithm: {bestAlgo}
+            </p>
+          </div>
+
           <h2 className="text-xl font-semibold mb-3">
             📊 Algorithm Comparison
           </h2>
