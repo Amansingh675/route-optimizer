@@ -1,27 +1,50 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+} from "react-leaflet";
 import { useState } from "react";
+import type { LeafletMouseEvent, LatLngExpression } from "leaflet";
+
+type Location = {
+  lat: number;
+  lng: number;
+};
 
 export default function MapComponent() {
-  const [points, setPoints] = useState<any[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
-  function ClickHandler() {
+  function MapClickHandler() {
     useMapEvents({
-      click(e) {
-        setPoints((prev) => [...prev, e.latlng]);
+      click(e: LeafletMouseEvent) {
+        setLocations((prev) => [
+          ...prev,
+          { lat: e.latlng.lat, lng: e.latlng.lng },
+        ]);
       },
     });
     return null;
   }
 
+  const center: LatLngExpression = [28.6139, 77.2090];
+
   return (
-    <MapContainer center={[28.6, 77.2]} zoom={5} className="h-125">
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <ClickHandler />
-      {points.map((p, i) => (
-        <Marker key={i} position={p} />
-      ))}
-    </MapContainer>
+    <div className="h-125 w-full">
+      <MapContainer
+        center={center}
+        zoom={5}
+        className="h-full w-full rounded-xl"
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapClickHandler />
+
+        {locations.map((loc, i) => (
+          <Marker key={i} position={[loc.lat, loc.lng]} />
+        ))}
+      </MapContainer>
+    </div>
   );
 }
