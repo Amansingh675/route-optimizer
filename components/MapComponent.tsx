@@ -15,10 +15,10 @@ import { getDistance } from "../utils/distance";
 import { tspGreedy } from "../utils/tsp";
 import { tspBrute } from "../utils/tspBrute";
 import ComparisonChart from "./ComparisonChart";
+import { getTrafficFactor, getWeatherFactor } from "../utils/smartFactors";
 
 type Location = { lat: number; lng: number };
 
-// ✅ Props for mode
 type Props = {
   mode?: string;
 };
@@ -29,8 +29,13 @@ export default function MapComponent({ mode }: Props) {
 
   const [greedyDist, setGreedyDist] = useState(0);
   const [bruteDist, setBruteDist] = useState(0);
-
   const [bestAlgo, setBestAlgo] = useState("");
+
+  // ✅ SMART STATES (cleaned)
+  const [trafficFactor, setTrafficFactor] = useState(1);
+  const [weatherFactor, setWeatherFactor] = useState(1);
+  const [weatherType, setWeatherType] = useState("");
+  const [smartDistance, setSmartDistance] = useState(0);
 
   function calcDistance(points: Location[]) {
     let dist = 0;
@@ -65,7 +70,7 @@ export default function MapComponent({ mode }: Props) {
   return (
     <div className="text-white">
 
-      {/* 🔥 BUTTON PANEL */}
+      {/* 🔥 BUTTONS */}
       <div className="mb-4 flex flex-wrap gap-3">
 
         {/* COMMON */}
@@ -87,20 +92,18 @@ export default function MapComponent({ mode }: Props) {
             setGreedyDist(0);
             setBruteDist(0);
             setBestAlgo("");
+            setSmartDistance(0);
           }}
           className="px-4 py-2 bg-red-600 rounded-lg"
         >
           Clear
         </button>
 
-        {/* CORE FEATURES */}
+        {/* CORE */}
         {mode !== "smart" && (
           <button
             onClick={() => {
-              if (locations.length < 2) {
-                alert("Add at least 2 points");
-                return;
-              }
+              if (locations.length < 2) return;
 
               const gPath = tspGreedy(locations);
               let gDist = 0;
@@ -119,12 +122,7 @@ export default function MapComponent({ mode }: Props) {
               if (locations.length <= 8) {
                 const { minDist } = tspBrute(locations);
                 setBruteDist(minDist);
-
-                setBestAlgo(
-                  minDist < gDist
-                    ? "Brute Force"
-                    : "Greedy"
-                );
+                setBestAlgo(minDist < gDist ? "Brute Force" : "Greedy");
               }
             }}
             className="px-4 py-2 bg-blue-600 rounded-lg"
@@ -133,58 +131,110 @@ export default function MapComponent({ mode }: Props) {
           </button>
         )}
 
-        {/* SMART FEATURES */}
+        {/* 🚦 TRAFFIC */}
         {mode === "smart" && (
           <button
-            onClick={() => alert("Traffic simulation coming next 🚦")}
+            onClick={() => {
+              const traffic = getTrafficFactor();
+              setTrafficFactor(traffic);
+              alert("Traffic Updated 🚦");
+            }}
             className="px-4 py-2 bg-yellow-500 rounded-lg"
           >
             Traffic 🚦
           </button>
         )}
+
+        {/* 🌦 WEATHER */}
+        {mode === "smart" && (
+          <button
+            onClick={() => {
+              const weather = getWeatherFactor();
+
+              let type = "Clear";
+              if (weather > 1.4) type = "Storm";
+              else if (weather > 1.1) type = "Rain";
+
+              setWeatherFactor(weather);
+              setWeatherType(type);
+
+              alert(`Weather: ${type} 🌦`);
+            }}
+            className="px-4 py-2 bg-purple-600 rounded-lg"
+          >
+            Weather 🌦
+          </button>
+        )}
+
+        {/* 🧠 APPLY */}
+        {mode === "smart" && (
+          <button
+            onClick={() => {
+              if (locations.length < 2) return;
+
+              let baseDist = 0;
+
+              for (let i = 0; i < locations.length - 1; i++) {
+                baseDist += getDistance(
+                  locations[i].lat,
+                  locations[i].lng,
+                  locations[i + 1].lat,
+                  locations[i + 1].lng
+                );
+              }
+
+              const finalDist = baseDist * trafficFactor * weatherFactor;
+              setSmartDistance(finalDist);
+            }}
+            className="px-4 py-2 bg-green-700 rounded-lg"
+          >
+            Apply Smart 🧠
+          </button>
+        )}
       </div>
 
-      {/* 📊 INFO */}
+      {/* INFO */}
       <div className="mb-4 p-3 bg-gray-800 rounded-xl">
         <p>Total Distance: {totalDistance.toFixed(2)} km</p>
         <p>Total Points: {locations.length}</p>
       </div>
 
-      {/* 🌍 MAP */}
-      <div className="rounded-xl overflow-hidden border border-gray-700">
-        <MapContainer center={center} zoom={5} className="h-125 w-full">
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <ClickHandler />
+      {/* MAP */}
+      <MapContainer center={center} zoom={5} className="h-125 w-full">
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <ClickHandler />
 
-          {locations.map((l, i) => (
-            <Marker key={i} position={[l.lat, l.lng]} />
-          ))}
+        {locations.map((l, i) => (
+          <Marker key={i} position={[l.lat, l.lng]} />
+        ))}
 
-          {locations.length > 1 && (
-            <Polyline
-              positions={locations.map((l) => [l.lat, l.lng])}
-              pathOptions={{
-                color: mode === "smart" ? "red" : "blue",
-              }}
-            />
-          )}
-        </MapContainer>
-      </div>
+        {locations.length > 1 && (
+          <Polyline
+            positions={locations.map((l) => [l.lat, l.lng])}
+            pathOptions={{
+              color:
+                mode === "smart"
+                  ? weatherType === "Storm"
+                    ? "purple"
+                    : trafficFactor > 1.5
+                    ? "red"
+                    : "orange"
+                  : "blue",
+            }}
+          />
+        )}
+      </MapContainer>
 
-      {/* 📈 CORE RESULT ONLY */}
-      {mode !== "smart" && greedyDist !== 0 && (
-        <div className="mt-6">
+      {/* SMART RESULT */}
+      {mode === "smart" && smartDistance !== 0 && (
+        <div className="mt-6 p-4 bg-gray-800 rounded-xl">
+          <p>Base Distance: {totalDistance.toFixed(2)} km</p>
+          <p>🚦 Traffic: {trafficFactor.toFixed(2)}x</p>
+          <p>🌦 Weather: {weatherType}</p>
 
-          <div className="mb-4 p-4 bg-gray-800 rounded-xl">
-            <p>Greedy: {greedyDist.toFixed(2)} km</p>
-            <p>Brute: {bruteDist.toFixed(2)} km</p>
-
-            <p className="text-green-400 mt-2">
-              Best: {bestAlgo}
-            </p>
-          </div>
-
-          <ComparisonChart greedy={greedyDist} brute={bruteDist} />
+          <p className="mt-3 text-yellow-400 font-semibold">
+            Smart Distance: {smartDistance.toFixed(2)} km
+          </p>
         </div>
       )}
     </div>
