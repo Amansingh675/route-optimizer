@@ -1,11 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
 
-const MapComponent = dynamic(() => import("./MapComponent"), {
-  ssr: false,
-});
+// ✅ Props define
+type Props = {
+  mode?: string;
+};
 
-export default function MapWrapper() {
-  return <MapComponent />;
+// ✅ Proper typing for dynamic import
+const MapComponent = dynamic(
+  () => import("./MapComponent")
+) as ComponentType<Props>;
+
+export default function MapWrapper({ mode }: Props) {
+  return <MapComponent mode={mode} />;
 }

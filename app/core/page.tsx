@@ -1,6 +1,6 @@
 "use client";
 
-import MapWrapper from "@/components/MapWrapper";
+import MapWrapper from "../../components/MapWrapper";
 
 export default function CorePage() {
   return (
